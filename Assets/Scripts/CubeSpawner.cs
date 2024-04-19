@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
-public class ObjectPoolManager : MonoBehaviour
+public class CubeSpawner : MonoBehaviour
 {
     private ParticleSystem _prefabExplosion;
     private BaseCube _prefabObject;
