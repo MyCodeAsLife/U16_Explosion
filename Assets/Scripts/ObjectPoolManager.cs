@@ -1,11 +1,14 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class ObjectPoolManager : MonoBehaviour
 {
-    //private Explosion _prefabExplosion;
+    private ParticleSystem _prefabExplosion;
     private BaseCube _prefabObject;
     private ObjectPool<BaseCube> _objectsPool;
+    private AudioSource _explosionSound;
 
     private float _explosionRadius;
     private float _explosionForce;
@@ -23,9 +26,10 @@ public class ObjectPoolManager : MonoBehaviour
         _minNumberCoube = 2;
         _maxNumberCoube = 6;
         _startScale = new Vector3(4, 4, 4);
-        //_prefabExplosion = Resources.Load<Explosion>("Prefabs/Explosion");
+        _prefabExplosion = Resources.Load<ParticleSystem>("Prefabs/Explosion");
         _prefabObject = Resources.Load<BaseCube>("Prefabs/Cube");
         _objectsPool = new ObjectPool<BaseCube>(_prefabObject, Create, Enable, Disable);
+        _explosionSound = GetComponent<AudioSource>();
     }
 
     private void OnDisable()
@@ -73,6 +77,7 @@ public class ObjectPoolManager : MonoBehaviour
         foreach (var interactiveObject in interactiveObjects)
             interactiveObject.AddExplosionForce(_explosionForce, position, _explosionRadius);
 
+        StartCoroutine(Explode(position));
     }
 
     private void SpawnObjects(Vector3 position, Vector3 scale, Quaternion rotation, float spawnChance)
@@ -101,5 +106,19 @@ public class ObjectPoolManager : MonoBehaviour
                 interactiveObjects.Add(hit.attachedRigidbody);
 
         return interactiveObjects;
+    }
+
+    private IEnumerator Explode(Vector3 position)
+    {
+        if (_explosionSound.isPlaying)
+            _explosionSound.Stop();
+
+        _explosionSound.Play();
+        const float Duration = 1.1f;
+        var effect = Instantiate(_prefabExplosion);
+        effect.transform.position = position;
+
+        yield return new WaitForSeconds(Duration);
+        Destroy(effect.gameObject);
     }
 }

@@ -13,9 +13,20 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
     public void StartInitialization(Vector3 position, Vector3 scale, Quaternion rotation, float spawnChance)
     {
         SpawnChance = spawnChance * Half;
+
+        SwitchColor();
+        SetTransform(position, scale, rotation);
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        Explode?.Invoke(this);
+    }
+
+    private void SetTransform(Vector3 position, Vector3 scale, Quaternion rotation)
+    {
         transform.localScale = scale * Half;
         transform.rotation = rotation;
-
         float newX = UnityEngine.Random.Range(-scale.x, scale.x);
         float newY = UnityEngine.Random.Range(0, scale.y);
         float newZ = UnityEngine.Random.Range(-scale.z, scale.z);
@@ -23,8 +34,13 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
         transform.position = position + offset;
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    private void SwitchColor()
     {
-        Explode?.Invoke(this);
+        float red = UnityEngine.Random.Range(0f, 1f);
+        float green = UnityEngine.Random.Range(0f, 1f);
+        float blue = UnityEngine.Random.Range(0f, 1f);
+        float alpha = 1;
+        Color newColor = new Color(red, green, blue, alpha);
+        GetComponent<Renderer>().material.color = newColor;
     }
 }
