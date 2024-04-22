@@ -53,47 +53,52 @@ public class CubeSpawner : MonoBehaviour
     protected void Enable(BaseCube cube)
     {
         cube.gameObject.SetActive(true);
-        cube.Explode += OnExplode;
+        cube.Used += OnCubeUsed;
     }
 
     protected void Disable(BaseCube cube)
     {
-        cube.Explode -= OnExplode;
+        cube.Used -= OnCubeUsed;
         cube.gameObject.SetActive(false);
         cube.transform.position = Vector3.zero;
     }
 
-    private void OnExplode(BaseCube cube)
+    private void OnCubeUsed(BaseCube cube)
     {
         float newSpawnChance = cube.SpawnChance;
         Vector3 scale = cube.transform.localScale;
         Vector3 position = cube.transform.position;
         Quaternion rotation = cube.transform.rotation;
-
+        float chance = Random.Range(0, _maxSpawnChance + 1);
         _objectsPool.Return(cube);
-        SpawnObjects(position, scale, rotation, newSpawnChance);
-        var interactiveObjects = GetExplodableObjects(position);
 
-        foreach (var interactiveObject in interactiveObjects)
-            interactiveObject.AddExplosionForce(_explosionForce, position, _explosionRadius);
-
-        StartCoroutine(Explode(position));
+        if (chance <= newSpawnChance)
+            SpawnObjects(position, scale, rotation, newSpawnChance);
+        else
+            Explode(position, scale.x);
     }
 
     private void SpawnObjects(Vector3 position, Vector3 scale, Quaternion rotation, float spawnChance)
     {
-        float chance = Random.Range(0, _maxSpawnChance + 1);
+        int numberNewCoube = Random.Range(_minNumberCoube, _maxNumberCoube);
 
-        if (chance <= spawnChance)
+        for (int i = 0; i < numberNewCoube; i++)
         {
-            int numberNewCoube = Random.Range(_minNumberCoube, _maxNumberCoube);
-
-            for (int i = 0; i < numberNewCoube; i++)
-            {
-                var cube = _objectsPool.Get();
-                cube.StartInitialization(position, scale, rotation, spawnChance);
-            }
+            var cube = _objectsPool.Get();
+            cube.StartInitialization(position, scale, rotation, spawnChance);
         }
+    }
+
+    private void Explode(Vector3 position, float objectScale)
+    {
+        var interactiveObjects = GetExplodableObjects(position);
+        float newExplosionForce = _explosionForce / objectScale;
+        float newExplosionRadius = _explosionRadius / objectScale;
+
+        foreach (var interactiveObject in interactiveObjects)
+            interactiveObject.AddExplosionForce(newExplosionForce, position, newExplosionRadius);
+
+        StartCoroutine(ShowExplosion(position));
     }
 
     private List<Rigidbody> GetExplodableObjects(Vector3 position)
@@ -108,13 +113,14 @@ public class CubeSpawner : MonoBehaviour
         return interactiveObjects;
     }
 
-    private IEnumerator Explode(Vector3 position)
+    private IEnumerator ShowExplosion(Vector3 position)
     {
+        const float Duration = 1.1f;
+
         if (_explosionSound.isPlaying)
             _explosionSound.Stop();
 
         _explosionSound.Play();
-        const float Duration = 1.1f;
         var effect = Instantiate(_prefabExplosion);
         effect.transform.position = position;
 

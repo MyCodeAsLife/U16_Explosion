@@ -8,7 +8,7 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
 
     public float SpawnChance { get; private set; }
 
-    public event Action<BaseCube> Explode;
+    public event Action<BaseCube> Used;
 
     public void StartInitialization(Vector3 position, Vector3 scale, Quaternion rotation, float spawnChance)
     {
@@ -20,7 +20,7 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        Explode?.Invoke(this);
+        Used?.Invoke(this);
     }
 
     private void SetTransform(Vector3 position, Vector3 scale, Quaternion rotation)
