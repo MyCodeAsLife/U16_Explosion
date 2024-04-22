@@ -1,18 +1,15 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(Renderer))]
-[RequireComponent(typeof(AudioSource))]
 public class BaseCube : MonoBehaviour, IPointerClickHandler
 {
     private const float Half = 0.5f;
     private const float MaxSpawnChance = 100f;
 
-    private ParticleSystem _prefabExplosion;
-    private AudioSource _explosionSound;
+    private Explosion _prefabExplosion;
 
     private float _explosionRadius;
     private float _explosionForce;
@@ -25,8 +22,7 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
     {
         _explosionRadius = 30;
         _explosionForce = 900;
-        _prefabExplosion = Resources.Load<ParticleSystem>("Prefabs/Explosion");
-        _explosionSound = GetComponent<AudioSource>();
+        _prefabExplosion = Resources.Load<Explosion>("Prefabs/Explosion");
     }
 
     public void StartInitialization(Vector3 position, Vector3 scale, Quaternion rotation, float spawnChance)
@@ -39,12 +35,7 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        //float newSpawnChance = cube.SpawnChance;
-        //Vector3 scale = cube.transform.localScale;
-        //Vector3 position = cube.transform.position;
-        //Quaternion rotation = cube.transform.rotation;
         float chance = UnityEngine.Random.Range(1, MaxSpawnChance + 1);
-        //_objectsPool.Return(cube);
 
         if (chance > CurrentSpawnChance)
         {
@@ -85,7 +76,8 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
         foreach (var interactiveObject in interactiveObjects)
             interactiveObject.AddExplosionForce(newExplosionForce, transform.position, newExplosionRadius);
 
-        StartCoroutine(ShowExplosion(transform.position));
+        var effect = Instantiate(_prefabExplosion);
+        effect.transform.position = transform.position;
     }
 
     private List<Rigidbody> GetExplodableObjects(Vector3 position)
@@ -98,20 +90,5 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
                 interactiveObjects.Add(hit.attachedRigidbody);
 
         return interactiveObjects;
-    }
-
-    private IEnumerator ShowExplosion(Vector3 position)
-    {
-        const float Duration = 1.1f;
-
-        if (_explosionSound.isPlaying)
-            _explosionSound.Stop();
-
-        _explosionSound.Play();
-        var effect = Instantiate(_prefabExplosion);
-        effect.transform.position = position;
-
-        yield return new WaitForSeconds(Duration);
-        Destroy(effect.gameObject);
     }
 }
