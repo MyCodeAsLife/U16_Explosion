@@ -1,18 +1,37 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+[RequireComponent(typeof(Renderer))]
+[RequireComponent(typeof(AudioSource))]
 public class BaseCube : MonoBehaviour, IPointerClickHandler
 {
     private const float Half = 0.5f;
+    private const float MaxSpawnChance = 100f;
 
-    public float SpawnChance { get; private set; }
+    private ParticleSystem _prefabExplosion;
+    private AudioSource _explosionSound;
+
+    private float _explosionRadius;
+    private float _explosionForce;
 
     public event Action<BaseCube> Used;
 
+    public float CurrentSpawnChance { get; private set; }
+
+    private void Awake()
+    {
+        _explosionRadius = 30;
+        _explosionForce = 900;
+        _prefabExplosion = Resources.Load<ParticleSystem>("Prefabs/Explosion");
+        _explosionSound = GetComponent<AudioSource>();
+    }
+
     public void StartInitialization(Vector3 position, Vector3 scale, Quaternion rotation, float spawnChance)
     {
-        SpawnChance = spawnChance * Half;
+        CurrentSpawnChance = spawnChance * Half;
 
         SwitchColor();
         SetTransform(position, scale, rotation);
@@ -20,6 +39,19 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        //float newSpawnChance = cube.SpawnChance;
+        //Vector3 scale = cube.transform.localScale;
+        //Vector3 position = cube.transform.position;
+        //Quaternion rotation = cube.transform.rotation;
+        float chance = UnityEngine.Random.Range(1, MaxSpawnChance + 1);
+        //_objectsPool.Return(cube);
+
+        if (chance > CurrentSpawnChance)
+        {
+            CurrentSpawnChance = 0;
+            Explode();
+        }
+
         Used?.Invoke(this);
     }
 
@@ -42,5 +74,44 @@ public class BaseCube : MonoBehaviour, IPointerClickHandler
         float alpha = 1;
         Color newColor = new Color(red, green, blue, alpha);
         GetComponent<Renderer>().material.color = newColor;
+    }
+
+    private void Explode()
+    {
+        var interactiveObjects = GetExplodableObjects(transform.position);
+        float newExplosionForce = _explosionForce / transform.localScale.x;
+        float newExplosionRadius = _explosionRadius / transform.localScale.x;
+
+        foreach (var interactiveObject in interactiveObjects)
+            interactiveObject.AddExplosionForce(newExplosionForce, transform.position, newExplosionRadius);
+
+        StartCoroutine(ShowExplosion(transform.position));
+    }
+
+    private List<Rigidbody> GetExplodableObjects(Vector3 position)
+    {
+        Collider[] hits = Physics.OverlapSphere(position, _explosionRadius);
+        List<Rigidbody> interactiveObjects = new List<Rigidbody>();
+
+        foreach (Collider hit in hits)
+            if (hit.attachedRigidbody != null)
+                interactiveObjects.Add(hit.attachedRigidbody);
+
+        return interactiveObjects;
+    }
+
+    private IEnumerator ShowExplosion(Vector3 position)
+    {
+        const float Duration = 1.1f;
+
+        if (_explosionSound.isPlaying)
+            _explosionSound.Stop();
+
+        _explosionSound.Play();
+        var effect = Instantiate(_prefabExplosion);
+        effect.transform.position = position;
+
+        yield return new WaitForSeconds(Duration);
+        Destroy(effect.gameObject);
     }
 }
